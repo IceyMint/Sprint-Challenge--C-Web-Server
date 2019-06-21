@@ -31,6 +31,7 @@ urlinfo_t *parse_url(char *url)
   char *hostname = strdup(url);
   char *port;
   char *path;
+  char* overrite;
 
   urlinfo_t *urlinfo = malloc(sizeof(urlinfo_t));
 
@@ -48,6 +49,35 @@ urlinfo_t *parse_url(char *url)
   ///////////////////
   // IMPLEMENT ME! //
   ///////////////////
+
+
+if(strstr(url,"://")){
+    printf(   "    ---------------------------------------------------------------------------------------------------"
+            "\n    | This program assumes http:// || https:// has been stripped from the url.                        |\n"
+              "    | If removing that yourself breaks your fingers you are welcome to use wget instead. ヽ(｀⌒´メ)ノ |\n"
+              "    ---------------------------------------------------------------------------------------------------\n"
+    );
+    exit(1);
+  }
+
+  overrite = strchr(hostname, '/');
+  //printf("%s\n",overrite);
+  path = overrite + 1;
+  *overrite = '\0';
+
+  overrite = strchr(hostname, ':');
+  if (!overrite) port = "80";
+  else {
+  //printf("%s\n",overrite);
+    port = overrite + 1;
+    *overrite = '\0';
+  }
+
+  //printf("%s\n",hostname);
+
+  urlinfo->hostname = hostname;
+  urlinfo->port = port;
+  urlinfo->path = path;
 
   return urlinfo;
 }
@@ -71,13 +101,22 @@ int send_request(int fd, char *hostname, char *port, char *path)
   ///////////////////
   // IMPLEMENT ME! //
   ///////////////////
+  
+  int reqlen = sprintf(request, 
+     "GET /%s HTTP/1.1\n"
+     "Host: %s:%s\n"
+     "Connection: close\n"
+     "\n"
+     ,path, hostname, port);
 
-  return 0;
+     rv = send(fd, request, reqlen, 0);
+
+  return rv;
 }
 
 int main(int argc, char *argv[])
 {  
-  int sockfd, numbytes;  
+  int sockfd, numbytes, rv;  
   char buf[BUFSIZE];
 
   if (argc != 2) {
@@ -96,6 +135,29 @@ int main(int argc, char *argv[])
   ///////////////////
   // IMPLEMENT ME! //
   ///////////////////
+  urlinfo_t *urlinfo = parse_url(argv[1]);
+
+  //printf("\nargs: %s\n", argv[1]);
+  //printf("http://%s:%s/%s\n",urlinfo->hostname, urlinfo->port, urlinfo->path);
+
+  sockfd = get_socket(urlinfo->hostname,urlinfo->port);
+
+  // if(sockfd == -1){
+  //   fprintf(stderr, "[ERROR]There was a problem with this request. Error in get_socket returned %x.\n",sockfd);
+  // }
+
+  rv = send_request(sockfd,urlinfo->hostname,urlinfo->port,urlinfo->path);
+
+  if (rv == -1) {
+       fprintf(stderr, "[ERROR]There was a problem with this request. Error in send returned %x.\n",rv);
+     }
+
+  while(numbytes = recv(sockfd, buf, 1, 0)){
+    printf("%c", *buf);
+  };
+
+  free(urlinfo);
+  close(sockfd);
 
   return 0;
 }

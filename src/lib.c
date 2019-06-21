@@ -41,7 +41,7 @@ int get_socket(char *hostname, char *port)
   hints.ai_socktype = SOCK_STREAM;
 
   if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
-    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+    fprintf(stderr, "[error]getaddrinfo: %s\n", gai_strerror(rv));
     exit(1);
   }
 
